@@ -5,6 +5,7 @@
 #include <fstream>
 #include <windows.h>
 #include <winreg.h>
+#include <filesystem>
 
 #include "Registry.h"
 #include "Hash.h"
@@ -19,18 +20,26 @@ int main()
   printf("- Fixes Save-As crashing\n\n"); 
 
 label_start:
-  printf("Enter your SIMCITY.EXE file location (relative or absolute path): ");
+  printf("Enter your SIMCITY.EXE file location: ");
   std::wstring input;
   std::getline(std::wcin, input);
-  if (!std::wifstream(input).good())
+  std::filesystem::path exe_path(input);
+  if (!exe_path.has_extension())
+    exe_path.append(L"SimCity.exe");
+  try
   {
-    printf("Could not open %ls\n", input.c_str());
+    exe_path = std::filesystem::canonical(exe_path);
+  }
+  catch (const std::exception& e)
+  {
+    printf("%s\n", e.what());
     goto label_start;
   }
-
+  printf("Canonical Path=%ls\n", exe_path.wstring().c_str());
+  printf("Parent Path=%ls\n", exe_path.parent_path().wstring().c_str());
 label_md5:
   std::string hash;
-  bool hash_result = Hash::GenerateMD5(input, hash);
+  bool hash_result = Hash::GenerateMD5(exe_path.wstring(), hash);
   if (hash_result)
     printf("md5sum=%s\n", hash.c_str());
   else
