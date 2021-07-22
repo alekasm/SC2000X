@@ -28,8 +28,23 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryValue values[], si
     if (status_queryvalue == ERROR_SUCCESS)
     {
       std::wstring data_wstring(queryData);
-      printf("(Existing) %ls=%ls\n", registryValue.ValueName.c_str(), data_wstring.c_str());
-    }    
+      printf("(Existing) %ls=%ls\n", registryValue.ValueName.c_str(),
+        data_wstring.c_str());
+    }  
+
+    LSTATUS status_setvalue = RegSetValueExW(hKey,
+      registryValue.ValueName.c_str(), NULL, registryValue.dwType,
+      (LPBYTE)registryValue.Data.c_str(),
+      registryValue.Data.size() * sizeof(wchar_t) + 1);
+
+    printf("(Setting) %ls=%ls\n", registryValue.ValueName.c_str(),
+      registryValue.Data.c_str());
+    if (status_setvalue != ERROR_SUCCESS)
+    {
+      printf("Unable to set the registry key. LSTATUS=%d\n", status_setvalue);
+      return FALSE;
+    }
+
   }
   LSTATUS status_closekey = RegCloseKey(hKey);
   if (status_closekey != ERROR_SUCCESS)
