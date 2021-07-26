@@ -8,13 +8,27 @@
 #include <filesystem>
 #include <wincon.h>
 
-
 #include "Registry.h"
 #include "Hash.h"
+#include "SC2KRegistry.h"
 
 //Warnings = Red, Prompts = White, Debug = Gray
 #define FOREGROUND_GRAY FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE
 #define FOREGROUND_WHITE FOREGROUND_GRAY | FOREGROUND_INTENSITY
+
+std::filesystem::path GetFilesystemPath(const std::wstring& path)
+{
+  std::filesystem::path fs_path(path);
+  try
+  {
+    fs_path = std::filesystem::canonical(fs_path);
+  }
+  catch (const std::exception&)
+  {
+    printf("Unable to validate that the following path exists: %ls\n", fs_path.c_str());
+  }
+  return fs_path;
+}
 
 void print_warning(HANDLE hConsole, const std::string warning)
 {
@@ -68,16 +82,15 @@ label_start:
   SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
   std::filesystem::path exe_path(input);
   std::filesystem::path exe_parent_path;
-  std::filesystem::path exe_sc2k_path;
+  std::filesystem::path root_path;
+
   if (!exe_path.has_extension())
     exe_path.append(L"SimCity.exe");
   try
   {
     exe_path = std::filesystem::canonical(exe_path);
     exe_parent_path = exe_path.parent_path();
-    exe_sc2k_path = std::filesystem::path(exe_parent_path);
-    exe_sc2k_path.append(L"SC2K");
-    exe_sc2k_path = std::filesystem::canonical(exe_sc2k_path);
+    root_path = exe_parent_path.parent_path();
   }
   catch (const std::exception& e)
   {
@@ -87,7 +100,8 @@ label_start:
 
   printf("Canonical Path=%ls\n", exe_path.wstring().c_str());
   printf("Parent Path=%ls\n", exe_parent_path.wstring().c_str());
-  printf("SC2K Path = % ls\n", exe_sc2k_path.wstring().c_str());
+  printf("Root Path=%ls\n", root_path.wstring().c_str());
+  //printf("SC2K Path = % ls\n", exe_sc2k_path.wstring().c_str());
 
 label_md5:
   std::string hash;
@@ -99,60 +113,111 @@ label_md5:
 
   printf("\nInstalling SimCity 2000 (WIN95)...\n");
 
-label_install_reg_localize:
-  RegistryKey rkey_localize;
-  rkey_localize.hKey = HKEY_CURRENT_USER;
-  rkey_localize.SubKey = L"Software\\Maxis\\SimCity 2000\\Localize";
+label_install_registry:
 
-  RegistryValue rval_localize_language;
-  rval_localize_language.dwType = REG_SZ;
-  rval_localize_language.ValueName = L"Language";
-  rval_localize_language.Data = L"USA";
-
-  const RegistryValue rvals_localize[] = { rval_localize_language };
-  if (!Registry::SetValues(rkey_localize, rvals_localize, 1))
+  //---------- Localize ----------
   {
-    printf("Try restarting this program as an administrator!\n");
-    goto label_start;
+    RegistryKey rkey;
+    rkey.hKey = HKEY_CURRENT_USER;
+    rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Localize";
+    const RegistryEntry rvals_localize[] = { RegistryEntry(L"Language", RegistryValue_SZ(L"USA"))};
+    if (!Registry::SetValues(rkey, rvals_localize, 1))
+    { //Assume that if it fails on the first registy edit, the others won't
+      printf("Try restarting this program as an administrator!\n");
+      goto label_start; 
+    }
   }
 
-label_install_reg_paths:
-  RegistryKey rkey_paths;
-  rkey_paths.hKey = HKEY_CURRENT_USER;
-  rkey_paths.SubKey = L"Software\\Maxis\\SimCity 2000\\Paths";  
- 
-  const size_t path_size = 9;
-  RegistryValue rval_paths[path_size];
-  const std::wstring subdir_paths[path_size] = {
-    L"Cities", L"Data", L"Goodies", L"Graphics", L"Home",
-    L"Music", L"SaveGame", L"Scenarios", L"TileSets" };
-  bool missing_filepath = false;
-  for (size_t i = 0; i < path_size; ++i)
+  //---------- Paths ----------
   {
-    std::filesystem::path subdir_path(exe_sc2k_path);
-    subdir_path.append(subdir_paths[i]);
-    try
+
+    std::unordered_map<std::wstring, std::wstring> KeyDirectoryMap;
+    auto it = SC2KRegistry::RequiredSubDirectories.begin();
+    for (; it != SC2KRegistry::RequiredSubDirectories.end(); ++it)
     {
-      subdir_path = std::filesystem::canonical(subdir_path);
+      std::filesystem::path find_path(root_path);
+      find_path.append(it->first);
+      try
+      {
+        find_path = std::filesystem::canonical(find_path);
+      }
+      catch (const std::exception&)
+      {
+        if (it->second.Required)
+        {
+          char buffer[256];
+          snprintf(buffer, sizeof(buffer),
+            "The required path does not exist: %ls\n",
+            find_path.wstring().c_str());
+          print_warning(hConsole, std::string(buffer));
+          goto label_start;
+        }
+        else
+        {
+          char buffer[256];
+          snprintf(buffer, sizeof(buffer),
+            "The optional path does not exist: %ls\nAlthough not required, some game features may not be present.",
+            find_path.wstring().c_str());
+          print_warning(hConsole, std::string(buffer));
+        }
+      }
+      //Adds presumed paths
+      for (const std::wstring& Key : it->second.KeyValues)
+      {
+        KeyDirectoryMap[Key] = find_path.wstring();
+      }
     }
-    catch (const std::exception& e)
-    {
-      printf("Directory isn't valid, still adding as a path: %ls\n",
-        subdir_path.c_str());
-      missing_filepath = true;
-    }
-    rval_paths[i] = RegistryValue(REG_SZ, subdir_paths[i], subdir_path);
+
+    RegistryKey rkey;
+    rkey.hKey = HKEY_CURRENT_USER;
+    rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Paths";
+
+    const RegistryEntry rvalues[] = {      
+      RegistryEntry(L"Cities", RegistryValue_SZ(KeyDirectoryMap.at(L"Cities"))),
+      RegistryEntry(L"Data", RegistryValue_SZ(KeyDirectoryMap.at(L"Data"))),
+      RegistryEntry(L"Goodies", RegistryValue_SZ(KeyDirectoryMap.at(L"Goodies"))),
+      RegistryEntry(L"Graphics", RegistryValue_SZ(KeyDirectoryMap.at(L"Graphics"))),
+      RegistryEntry(L"Home", RegistryValue_SZ(exe_parent_path.wstring())),
+      RegistryEntry(L"Music", RegistryValue_SZ(KeyDirectoryMap.at(L"Music"))),
+      RegistryEntry(L"SaveGame", RegistryValue_SZ(KeyDirectoryMap.at(L"SaveGame"))),
+      RegistryEntry(L"Scenarios", RegistryValue_SZ(KeyDirectoryMap.at(L"Scenarios"))),
+      RegistryEntry(L"TileSets", RegistryValue_SZ(KeyDirectoryMap.at(L"TileSets")))
+    };
+
+    if (!Registry::SetValues(rkey, rvalues, 9))
+      goto label_start;
+    
   }
-
-  if (!Registry::SetValues(rkey_paths, rval_paths, path_size))
-    goto label_start;
-
-  if (missing_filepath)
+  
+  //---------- Registration ----------
   {
-    std::string warning = "You were missing a directory listed above! The installation and patch may\n";
-    warning.append("be successful, but the game may fail to run or have miscellaneous issues.\n");
-    print_warning(hConsole, warning);
-  } 
+   
+    printf("\n");
+    std::wstring mayor_name, company_name;
+
+    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+    wprintf(L"Im SimCity 2000, you will become the fearless leader of many living sims.\nWhat should they call you?\n");
+    SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);    
+    std::getline(std::wcin, mayor_name);
+
+    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+    printf("Please tell me again, %ls, from what fine company do you hail?\n", mayor_name.c_str());
+    SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);
+    std::getline(std::wcin, company_name);
+    SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
+    printf("\n");
+  
+    RegistryKey rkey;
+    rkey.hKey = HKEY_CURRENT_USER;
+    rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Registration";
+    RegistryEntry rvalues[] = 
+    {
+      RegistryEntry(L"Mayor Name", RegistryValue_SZ(mayor_name)),
+      RegistryEntry(L"Company Name", RegistryValue_SZ(company_name))
+    };
+    if (!Registry::SetValues(rkey, rvalues, 2))
+      goto label_start;
+  }
 
   SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
   printf("\nFinished! SimCity 2000 (Win95) is now installed and patched.\n");

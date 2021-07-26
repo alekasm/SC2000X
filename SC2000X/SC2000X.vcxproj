@@ -150,6 +150,7 @@
   <ItemGroup>
     <ClInclude Include="Hash.h" />
     <ClInclude Include="Registry.h" />
+    <ClInclude Include="SC2KRegistry.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -32,5 +32,8 @@
     <ClInclude Include="Registry.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="SC2KRegistry.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,7 +1,7 @@
 #include "Registry.h"
 #include <winreg.h>
 
-BOOL Registry::SetValues(const RegistryKey key, const RegistryValue values[], size_t size)
+BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], size_t size)
 {
   HKEY hKey;
   DWORD disposition;
@@ -17,28 +17,40 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryValue values[], si
 
   for (size_t index = 0; index < size; ++index)
   {
-    const RegistryValue registryValue = values[index];
+    const RegistryEntry& registryEntry = values[index];    
+    wchar_t w_buffer[256];
+    swprintf(w_buffer, sizeof(w_buffer), L"%ls", registryEntry.Value->Data);   
 
     DWORD queryType;
     WCHAR queryData[256] = { 0 };
     DWORD cbData = sizeof(queryData) - 1;
     LSTATUS status_queryvalue = RegQueryValueExW(hKey,
-      registryValue.ValueName.c_str(), NULL, &queryType, 
+      registryEntry.Name.c_str(), NULL, &queryType, 
       (LPBYTE)queryData, &cbData);
+
+    bool overwrite = false;
+
     if (status_queryvalue == ERROR_SUCCESS)
-    {
-      std::wstring data_wstring(queryData);
-      printf("(Existing) %ls=%ls\n", registryValue.ValueName.c_str(),
-        data_wstring.c_str());
+    {      
+      std::wstring data_wstring(queryData);      
+      if (data_wstring.compare(w_buffer) == 0)
+      {
+        printf("Existing %ls=%ls\n", registryEntry.Name.c_str(),
+          data_wstring.c_str());
+        continue;
+      }
+      overwrite = true;
     }  
-
+    
     LSTATUS status_setvalue = RegSetValueExW(hKey,
-      registryValue.ValueName.c_str(), NULL, registryValue.dwType,
-      (LPBYTE)registryValue.Data.c_str(),
-      registryValue.Data.size() * sizeof(wchar_t) + 1);
+      registryEntry.Name.c_str(), NULL,
+      registryEntry.Value->GetType(),
+      registryEntry.Value->Data,
+      registryEntry.Value->Size);
 
-    printf("(Setting) %ls=%ls\n", registryValue.ValueName.c_str(),
-      registryValue.Data.c_str());
+    printf("%s %ls=", overwrite ? "Overwriting" : "Setting",
+      registryEntry.Name.c_str());
+    printf("%ls\n", registryEntry.Value->Data);
     if (status_setvalue != ERROR_SUCCESS)
     {
       printf("Unable to set the registry key. LSTATUS=%d\n", status_setvalue);
