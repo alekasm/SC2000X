@@ -5,44 +5,55 @@
 
 
 struct RegistryValue {
-  virtual DWORD GetType() const = 0;
-  LPBYTE Data;
-  DWORD Size;
-};
+  const DWORD dwType;
+  const DWORD Size;
+  LPBYTE Data; 
 
-struct RegistryValue_SZ : RegistryValue {
-  RegistryValue_SZ(const std::wstring& value)
+  explicit RegistryValue(const std::wstring& value) : 
+    dwType(REG_SZ), Size((value.size() + 1) * sizeof(wchar_t))
   {
-    Data = (LPBYTE)value.c_str();
-    Size = (value.size() * sizeof(wchar_t)) + 1;
+    Data = (LPBYTE) malloc(Size);
+    if (Data == nullptr) throw std::bad_alloc();
+    memcpy(Data, value.c_str(), Size);
   }
-  DWORD GetType() const
-  {
-    return REG_SZ;
-  }
-};
 
-struct RegistryValue_DWORD : RegistryValue {
-  RegistryValue_DWORD(const DWORD& value)
+  explicit RegistryValue(const DWORD& value) :
+    dwType(REG_DWORD), Size(sizeof(DWORD))
   {
-    Data = (LPBYTE)value;
-    Size = sizeof(DWORD);
+    Data = (LPBYTE) malloc(Size);    
+    if (Data == nullptr) throw std::bad_alloc();
+    memcpy(Data, &value, Size);
   }
-  DWORD GetType() const
+
+  RegistryValue(const RegistryValue& v) : 
+    dwType(v.dwType), Size(v.Size)    
   {
-    return REG_DWORD;
+    Data = (LPBYTE)malloc(Size);
+    if (Data == nullptr) throw std::bad_alloc();
+    memcpy(Data, v.Data, Size);
   }
+
+  ~RegistryValue()
+  {
+    free(Data);
+    Data = nullptr;
+  }
+
 };
 
 struct RegistryEntry {
-  std::wstring Name;  
+  const std::wstring Name;  
   const RegistryValue* Value;
-  RegistryEntry(std::wstring Name, const RegistryValue& Value)
+  RegistryEntry(std::wstring Name, const RegistryValue& Value) :
+    Name(Name), Value(new RegistryValue(Value))
   {
-    this->Name = Name;
-    this->Value = &Value;
   }
   RegistryEntry() = delete;
+  ~RegistryEntry()
+  {
+    delete Value;
+    Value = nullptr;
+  }
 };
 
 struct RegistryKey {
@@ -53,7 +64,7 @@ struct RegistryKey {
     this->hKey = hKey;
     this->SubKey = SubKey;
   }
-  RegistryKey() = default;
+  RegistryKey() = default;  
 };
 
 namespace Registry {

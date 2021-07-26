@@ -1,6 +1,8 @@
 #pragma once
 #include <unordered_map>
 #include <string>
+#include <filesystem>
+#include "Logger.h"
 
 struct PathRegistryKeyValue
 {
@@ -13,6 +15,7 @@ struct PathRegistryKeyValue
   }
   PathRegistryKeyValue() = delete;
 };
+
 namespace SC2KRegistry
 {
   static const std::unordered_map<std::wstring, PathRegistryKeyValue> RequiredSubDirectories =
@@ -25,4 +28,10 @@ namespace SC2KRegistry
     {L"SC2K/SCENARIO", PathRegistryKeyValue({L"Scenarios"}, true)},
     {L"SC2K/SCURKART", PathRegistryKeyValue({L"TileSets"}, true)}
   };
+
+  extern bool SetLocalization();
+  extern bool SetPaths(
+    const std::filesystem::path& root_path,
+    const std::filesystem::path& exe_parent_path);
+  extern bool SetRegistration();
 }

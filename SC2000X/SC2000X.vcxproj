@@ -144,11 +144,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Hash.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Registry.cpp" />
     <ClCompile Include="SC2000X.cpp" />
+    <ClCompile Include="SC2KRegistry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Hash.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="Registry.h" />
     <ClInclude Include="SC2KRegistry.h" />
   </ItemGroup>

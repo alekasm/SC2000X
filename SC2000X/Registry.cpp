@@ -18,9 +18,9 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], si
   for (size_t index = 0; index < size; ++index)
   {
     const RegistryEntry& registryEntry = values[index];
+    const size_t v_size = registryEntry.Value->Size;
     wchar_t w_buffer[256];
-    swprintf(w_buffer, sizeof(w_buffer), L"%ls",      
-      registryEntry.Value->Data);
+    swprintf(w_buffer, v_size, L"%ls", registryEntry.Value->Data);
 
     DWORD queryType;
     WCHAR queryData[256] = { 0 };
@@ -42,11 +42,18 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], si
       overwrite = true;
     }  
     
-    LSTATUS status_setvalue = RegSetValueExW(hKey,
-      registryEntry.Name.c_str(), NULL,
-      registryEntry.Value->GetType(),
-      registryEntry.Value->Data,
-      registryEntry.Value->Size);
+    LSTATUS status_setvalue;
+    try {
+      status_setvalue = RegSetValueExW(hKey,
+        registryEntry.Name.c_str(), NULL,
+        registryEntry.Value->dwType,
+        registryEntry.Value->Data,
+        registryEntry.Value->Size - 1);
+    }
+    catch (const std::exception& e)
+    {
+      printf("%s\n", e.what());
+    }
 
     printf("%s %ls=%ls\n", overwrite ? "Overwriting" : "Setting",
       registryEntry.Name.c_str(), w_buffer);

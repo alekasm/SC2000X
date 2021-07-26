@@ -8,13 +8,13 @@
 #include <filesystem>
 #include <wincon.h>
 
+#include "Logger.h"
 #include "Registry.h"
 #include "Hash.h"
 #include "SC2KRegistry.h"
 
 //Warnings = Red, Prompts = White, Debug = Gray
-#define FOREGROUND_GRAY FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE
-#define FOREGROUND_WHITE FOREGROUND_GRAY | FOREGROUND_INTENSITY
+
 
 std::filesystem::path GetFilesystemPath(const std::wstring& path)
 {
@@ -30,16 +30,10 @@ std::filesystem::path GetFilesystemPath(const std::wstring& path)
   return fs_path;
 }
 
-void print_warning(HANDLE hConsole, const std::string warning)
-{
-  SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_INTENSITY);
-  printf("\nWARNING:\n%s\n", warning.c_str());
-  SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
-}
-
 int main()
 {
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+  Logger::Initialize(hConsole);
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
   printf("Welcome to SC2000X - An Open-Source Win95 SimCity 2000 Patcher\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN);
@@ -71,7 +65,7 @@ int main()
     warning.append("1. Right-click -> \"Run-as-Administrator\"\n");
     warning.append("2. Move the game files to a user directory (ie Desktop)\n");
     warning.append("3. Ensure the game is not located on read-only/removable storage ie usb/cd/iso/zip\n");
-    print_warning(hConsole, warning);
+    Logger::PrintWarning(warning);
   }
 
 label_start:
@@ -101,7 +95,6 @@ label_start:
   printf("Canonical Path=%ls\n", exe_path.wstring().c_str());
   printf("Parent Path=%ls\n", exe_parent_path.wstring().c_str());
   printf("Root Path=%ls\n", root_path.wstring().c_str());
-  //printf("SC2K Path = % ls\n", exe_sc2k_path.wstring().c_str());
 
   std::string hash;
   bool hash_result = Hash::GenerateMD5(exe_path.wstring(), hash);
@@ -112,108 +105,9 @@ label_start:
 
   printf("\nInstalling SimCity 2000 (WIN95)...\n");
 
-  //---------- Localize ----------
-  {
-    RegistryKey rkey;
-    rkey.hKey = HKEY_CURRENT_USER;
-    rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Localize";
-    const RegistryEntry rvals_localize[] = { RegistryEntry(L"Language", RegistryValue_SZ(L"USA"))};
-    if (!Registry::SetValues(rkey, rvals_localize, 1))
-    { //Assume that if it fails on the first registy edit, the others won't
-      printf("Try restarting this program as an administrator!\n");
-      goto label_start; 
-    }
-  }
-
-  //---------- Paths ----------
-  {
-    std::unordered_map<std::wstring, std::wstring> KeyDirectoryMap;
-    KeyDirectoryMap[L"Home"] = exe_parent_path.wstring();
-    auto it = SC2KRegistry::RequiredSubDirectories.begin();
-    for (; it != SC2KRegistry::RequiredSubDirectories.end(); ++it)
-    {
-      std::filesystem::path find_path(root_path);
-      find_path.append(it->first);
-      try
-      {
-        find_path = std::filesystem::canonical(find_path);
-      }
-      catch (const std::exception&)
-      {
-        if (it->second.Required)
-        {
-          char buffer[256];
-          snprintf(buffer, sizeof(buffer),
-            "The required path does not exist: %ls\n",
-            find_path.wstring().c_str());
-          print_warning(hConsole, std::string(buffer));
-          goto label_start;
-        }
-        else
-        {
-          char buffer[256];
-          snprintf(buffer, sizeof(buffer),
-            "The optional path does not exist: %ls\nAlthough not required, some game features may not be present.",
-            find_path.wstring().c_str());
-          print_warning(hConsole, std::string(buffer));
-        }
-      }
-      //Adds presumed paths
-      for (const std::wstring& Key : it->second.KeyValues)
-      {
-        KeyDirectoryMap[Key] = find_path.wstring();
-      }
-    }
-
-    RegistryKey rkey;
-    rkey.hKey = HKEY_CURRENT_USER;
-    rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Paths";
-
-    //Do not use stack-allocated values for RegistryValues, they will be pointer casted.
-    const RegistryEntry rvalues[] {
-      RegistryEntry(L"Cities", RegistryValue_SZ(KeyDirectoryMap.at(L"Cities"))),
-      RegistryEntry(L"Data", RegistryValue_SZ(KeyDirectoryMap.at(L"Data"))),
-      RegistryEntry(L"Goodies", RegistryValue_SZ(KeyDirectoryMap.at(L"Goodies"))),
-      RegistryEntry(L"Graphics", RegistryValue_SZ(KeyDirectoryMap.at(L"Graphics"))),
-      RegistryEntry(L"Home", RegistryValue_SZ(KeyDirectoryMap.at(L"Home"))), 
-      RegistryEntry(L"Music", RegistryValue_SZ(KeyDirectoryMap.at(L"Music"))),
-      RegistryEntry(L"SaveGame", RegistryValue_SZ(KeyDirectoryMap.at(L"SaveGame"))),
-      RegistryEntry(L"Scenarios", RegistryValue_SZ(KeyDirectoryMap.at(L"Scenarios"))),
-      RegistryEntry(L"TileSets", RegistryValue_SZ(KeyDirectoryMap.at(L"TileSets")))
-    };   
-
-    if (!Registry::SetValues(rkey, rvalues, 9))
-      goto label_start;   
-  }
-  
-  //---------- Registration ----------
-  {   
-    printf("\n");
-    std::wstring mayor_name, company_name;
-
-    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-    wprintf(L"Im SimCity 2000, you will become the fearless leader of many living Sims.\nWhat should they call you? ");
-    SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);    
-    std::getline(std::wcin, mayor_name);
-
-    SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-    printf("Please tell me again, %ls, from what fine company do you hail? ", mayor_name.c_str());
-    SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);
-    std::getline(std::wcin, company_name);
-    SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
-    printf("\n");
-  
-    RegistryKey rkey;
-    rkey.hKey = HKEY_CURRENT_USER;
-    rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Registration";
-    RegistryEntry rvalues[] = 
-    {
-      RegistryEntry(L"Mayor Name", RegistryValue_SZ(mayor_name)),
-      RegistryEntry(L"Company Name", RegistryValue_SZ(company_name))
-    };
-    if (!Registry::SetValues(rkey, rvalues, 2))
-      goto label_start;
-  }
+  if (!SC2KRegistry::SetLocalization()) goto label_start;
+  if (!SC2KRegistry::SetPaths(root_path, exe_parent_path)) goto label_start;
+  if (!SC2KRegistry::SetRegistration()) goto label_start;
 
   SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
   printf("\nFinished! SimCity 2000 (Win95) is now installed and patched.\n");
