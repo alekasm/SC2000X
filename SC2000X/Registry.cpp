@@ -17,9 +17,10 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], si
 
   for (size_t index = 0; index < size; ++index)
   {
-    const RegistryEntry& registryEntry = values[index];    
+    const RegistryEntry& registryEntry = values[index];
     wchar_t w_buffer[256];
-    swprintf(w_buffer, sizeof(w_buffer), L"%ls", registryEntry.Value->Data);   
+    swprintf(w_buffer, sizeof(w_buffer), L"%ls",      
+      registryEntry.Value->Data);
 
     DWORD queryType;
     WCHAR queryData[256] = { 0 };
@@ -29,10 +30,9 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], si
       (LPBYTE)queryData, &cbData);
 
     bool overwrite = false;
-
     if (status_queryvalue == ERROR_SUCCESS)
     {      
-      std::wstring data_wstring(queryData);      
+      std::wstring data_wstring(queryData);
       if (data_wstring.compare(w_buffer) == 0)
       {
         printf("Existing %ls=%ls\n", registryEntry.Name.c_str(),
@@ -48,9 +48,9 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], si
       registryEntry.Value->Data,
       registryEntry.Value->Size);
 
-    printf("%s %ls=", overwrite ? "Overwriting" : "Setting",
-      registryEntry.Name.c_str());
-    printf("%ls\n", registryEntry.Value->Data);
+    printf("%s %ls=%ls\n", overwrite ? "Overwriting" : "Setting",
+      registryEntry.Name.c_str(), w_buffer);
+
     if (status_setvalue != ERROR_SUCCESS)
     {
       printf("Unable to set the registry key. LSTATUS=%d\n", status_setvalue);

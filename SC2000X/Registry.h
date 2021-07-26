@@ -42,7 +42,7 @@ struct RegistryEntry {
     this->Name = Name;
     this->Value = &Value;
   }
-  RegistryEntry() { Value = nullptr; Name = L""; }
+  RegistryEntry() = delete;
 };
 
 struct RegistryKey {
@@ -53,7 +53,7 @@ struct RegistryKey {
     this->hKey = hKey;
     this->SubKey = SubKey;
   }
-  RegistryKey() {}
+  RegistryKey() = default;
 };
 
 namespace Registry {

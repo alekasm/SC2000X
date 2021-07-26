@@ -103,7 +103,6 @@ label_start:
   printf("Root Path=%ls\n", root_path.wstring().c_str());
   //printf("SC2K Path = % ls\n", exe_sc2k_path.wstring().c_str());
 
-label_md5:
   std::string hash;
   bool hash_result = Hash::GenerateMD5(exe_path.wstring(), hash);
   if (hash_result)
@@ -112,8 +111,6 @@ label_md5:
     goto label_start;
 
   printf("\nInstalling SimCity 2000 (WIN95)...\n");
-
-label_install_registry:
 
   //---------- Localize ----------
   {
@@ -130,8 +127,8 @@ label_install_registry:
 
   //---------- Paths ----------
   {
-
     std::unordered_map<std::wstring, std::wstring> KeyDirectoryMap;
+    KeyDirectoryMap[L"Home"] = exe_parent_path.wstring();
     auto it = SC2KRegistry::RequiredSubDirectories.begin();
     for (; it != SC2KRegistry::RequiredSubDirectories.end(); ++it)
     {
@@ -172,36 +169,35 @@ label_install_registry:
     rkey.hKey = HKEY_CURRENT_USER;
     rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Paths";
 
-    const RegistryEntry rvalues[] = {      
+    //Do not use stack-allocated values for RegistryValues, they will be pointer casted.
+    const RegistryEntry rvalues[] {
       RegistryEntry(L"Cities", RegistryValue_SZ(KeyDirectoryMap.at(L"Cities"))),
       RegistryEntry(L"Data", RegistryValue_SZ(KeyDirectoryMap.at(L"Data"))),
       RegistryEntry(L"Goodies", RegistryValue_SZ(KeyDirectoryMap.at(L"Goodies"))),
       RegistryEntry(L"Graphics", RegistryValue_SZ(KeyDirectoryMap.at(L"Graphics"))),
-      RegistryEntry(L"Home", RegistryValue_SZ(exe_parent_path.wstring())),
+      RegistryEntry(L"Home", RegistryValue_SZ(KeyDirectoryMap.at(L"Home"))), 
       RegistryEntry(L"Music", RegistryValue_SZ(KeyDirectoryMap.at(L"Music"))),
       RegistryEntry(L"SaveGame", RegistryValue_SZ(KeyDirectoryMap.at(L"SaveGame"))),
       RegistryEntry(L"Scenarios", RegistryValue_SZ(KeyDirectoryMap.at(L"Scenarios"))),
       RegistryEntry(L"TileSets", RegistryValue_SZ(KeyDirectoryMap.at(L"TileSets")))
-    };
+    };   
 
     if (!Registry::SetValues(rkey, rvalues, 9))
-      goto label_start;
-    
+      goto label_start;   
   }
   
   //---------- Registration ----------
-  {
-   
+  {   
     printf("\n");
     std::wstring mayor_name, company_name;
 
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-    wprintf(L"Im SimCity 2000, you will become the fearless leader of many living sims.\nWhat should they call you?\n");
+    wprintf(L"Im SimCity 2000, you will become the fearless leader of many living Sims.\nWhat should they call you? ");
     SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);    
     std::getline(std::wcin, mayor_name);
 
     SetConsoleTextAttribute(hConsole, FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-    printf("Please tell me again, %ls, from what fine company do you hail?\n", mayor_name.c_str());
+    printf("Please tell me again, %ls, from what fine company do you hail? ", mayor_name.c_str());
     SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);
     std::getline(std::wcin, company_name);
     SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
