@@ -11,6 +11,7 @@ public:
   static void Initialize(HANDLE);
   static void PrintWarning(const std::string&);
   static HANDLE GetConsole();
+  static std::wstring Prompt(WORD, const wchar_t*);
 private:
   static HANDLE hConsole;
 };

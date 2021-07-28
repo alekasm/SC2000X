@@ -76,18 +76,13 @@ bool SC2KRegistry::SetPaths(
 bool SC2KRegistry::SetRegistration()
 {
   printf("\n");
-  std::wstring mayor_name, company_name;
-
-  SetConsoleTextAttribute(Logger::GetConsole(), FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-  wprintf(L"Im SimCity 2000, you will become the fearless leader of many living Sims.\nWhat should they call you? ");
-  SetConsoleTextAttribute(Logger::GetConsole(), FOREGROUND_WHITE);
-  std::getline(std::wcin, mayor_name);
-
-  SetConsoleTextAttribute(Logger::GetConsole(), FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-  printf("Please tell me again, %ls, from what fine company do you hail? ", mayor_name.c_str());
-  SetConsoleTextAttribute(Logger::GetConsole(), FOREGROUND_WHITE);
-  std::getline(std::wcin, company_name);
-  SetConsoleTextAttribute(Logger::GetConsole(), FOREGROUND_GRAY);
+  std::wstring mayor_name = Logger::Prompt(FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY,
+    L"In SimCity 2000, you will become the fearless leader of many living Sims.\nWhat should they call you? ");  
+ 
+  wchar_t buffer[256];
+  swprintf(buffer, sizeof(buffer) / sizeof(wchar_t),
+    L"Please tell me again, %ls, from what fine company do you hail? ", mayor_name.c_str());
+  std::wstring company_name = Logger::Prompt(FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY, buffer);
   printf("\n");
 
   RegistryKey rkey;

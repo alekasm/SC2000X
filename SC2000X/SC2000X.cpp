@@ -15,7 +15,6 @@
 
 //Warnings = Red, Prompts = White, Debug = Gray
 
-
 std::filesystem::path GetFilesystemPath(const std::wstring& path)
 {
   std::filesystem::path fs_path(path);
@@ -35,7 +34,7 @@ int main()
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
   Logger::Initialize(hConsole);
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-  printf("Welcome to SC2000X - An Open-Source Win95 SimCity 2000 Patcher\n");
+  printf("Welcome to SC2000X - An Open-Source SimCity 2000(Win95) Patcher\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN);
   printf("Current Version: 0.1\n");
   printf("Aleksander Krimsky - alekasm.com | krimsky.net\n\n");
@@ -69,46 +68,52 @@ int main()
   }
 
 label_start:
-  SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);
-  printf("Enter your SIMCITY.EXE file location: ");
-  std::wstring input;
-  std::getline(std::wcin, input);
-  SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
-  std::filesystem::path exe_path(input);
-  std::filesystem::path exe_parent_path;
-  std::filesystem::path root_path;
-
-  if (!exe_path.has_extension())
-    exe_path.append(L"SimCity.exe");
-  try
   {
-    exe_path = std::filesystem::canonical(exe_path);
-    exe_parent_path = exe_path.parent_path();
-    root_path = exe_parent_path.parent_path();
-  }
-  catch (const std::exception& e)
-  {
-    printf("%s\n", e.what());
-    goto label_start;
+    std::wstring run_installer = Logger::Prompt(FOREGROUND_WHITE,
+      L"Would you like to install the game? (required to run) Y/n: ");
+    std::transform(run_installer.begin(), run_installer.end(), run_installer.begin(), ::tolower);
+    if (!run_installer.empty() && run_installer.at(0) == L'n') goto label_patcher;
   }
 
-  printf("Canonical Path=%ls\n", exe_path.wstring().c_str());
-  printf("Parent Path=%ls\n", exe_parent_path.wstring().c_str());
-  printf("Root Path=%ls\n", root_path.wstring().c_str());
+label_install:
+  {
+    std::wstring input = Logger::Prompt(FOREGROUND_WHITE, L"Enter your SIMCITY.EXE file location: ");
+    std::filesystem::path exe_path(input);
+    std::filesystem::path exe_parent_path;
+    std::filesystem::path root_path;
 
-  std::string hash;
-  bool hash_result = Hash::GenerateMD5(exe_path.wstring(), hash);
-  if (hash_result)
-    printf("md5sum=%s\n", hash.c_str());
-  else
-    goto label_start;
+    if (!exe_path.has_extension())
+      exe_path.append(L"SimCity.exe");
+    try
+    {
+      exe_path = std::filesystem::canonical(exe_path);
+      exe_parent_path = exe_path.parent_path();
+      root_path = exe_parent_path.parent_path();
+    }
+    catch (const std::exception& e)
+    {
+      printf("%s\n", e.what());
+      goto label_install;
+    }
 
-  printf("\nInstalling SimCity 2000 (WIN95)...\n");
+    printf("Canonical Path=%ls\n", exe_path.wstring().c_str());
+    printf("Parent Path=%ls\n", exe_parent_path.wstring().c_str());
+    printf("Root Path=%ls\n", root_path.wstring().c_str());
 
-  if (!SC2KRegistry::SetLocalization()) goto label_start;
-  if (!SC2KRegistry::SetPaths(root_path, exe_parent_path)) goto label_start;
-  if (!SC2KRegistry::SetRegistration()) goto label_start;
+    std::string hash;
+    bool hash_result = Hash::GenerateMD5(exe_path.wstring(), hash);
+    if (hash_result)
+      printf("md5sum=%s\n", hash.c_str());
+    else
+      goto label_start;
 
+    printf("\nInstalling SimCity 2000 (WIN95)...\n");
+    if (!SC2KRegistry::SetLocalization()) goto label_start;
+    if (!SC2KRegistry::SetPaths(root_path, exe_parent_path)) goto label_start;
+    if (!SC2KRegistry::SetRegistration()) goto label_start;
+  }
+
+label_patcher:
   SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
   printf("\nFinished! SimCity 2000 (Win95) is now installed and patched.\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);
