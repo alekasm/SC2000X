@@ -17,46 +17,37 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], si
 
   for (size_t index = 0; index < size; ++index)
   {
-    const RegistryEntry& registryEntry = values[index];
-    const size_t v_size = registryEntry.Value->Size;
-    wchar_t w_buffer[256];
-    swprintf(w_buffer, v_size, L"%ls", registryEntry.Value->Data);
+    const RegistryEntry& entry = values[index];
+    const size_t v_size = entry.Value->Size;
 
     DWORD queryType;
     WCHAR queryData[256] = { 0 };
     DWORD cbData = sizeof(queryData) - 1;
     LSTATUS status_queryvalue = RegQueryValueExW(hKey,
-      registryEntry.Name.c_str(), NULL, &queryType, 
+      entry.Name.c_str(), NULL, &queryType, 
       (LPBYTE)queryData, &cbData);
 
     bool overwrite = false;
     if (status_queryvalue == ERROR_SUCCESS)
     {      
       std::wstring data_wstring(queryData);
-      if (data_wstring.compare(w_buffer) == 0)
+      if (data_wstring.compare(entry.Value->wstring.c_str()) == 0)
       {
-        printf("Existing %ls=%ls\n", registryEntry.Name.c_str(),
+        printf("Existing %ls=%ls\n", entry.Name.c_str(),
           data_wstring.c_str());
         continue;
       }
       overwrite = true;
     }  
     
-    LSTATUS status_setvalue;
-    try {
-      status_setvalue = RegSetValueExW(hKey,
-        registryEntry.Name.c_str(), NULL,
-        registryEntry.Value->dwType,
-        registryEntry.Value->Data,
-        registryEntry.Value->Size - 1);
-    }
-    catch (const std::exception& e)
-    {
-      printf("%s\n", e.what());
-    }
+    LSTATUS status_setvalue = RegSetValueExW(hKey,
+        entry.Name.c_str(), NULL,
+        entry.Value->dwType,
+        entry.Value->Data,
+        entry.Value->Size - 1);
 
     printf("%s %ls=%ls\n", overwrite ? "Overwriting" : "Setting",
-      registryEntry.Name.c_str(), w_buffer);
+      entry.Name.c_str(), entry.Value->wstring.c_str());
 
     if (status_setvalue != ERROR_SUCCESS)
     {
