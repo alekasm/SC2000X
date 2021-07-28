@@ -107,15 +107,20 @@ label_install:
     else
       goto label_start;
 
-    printf("\nInstalling SimCity 2000 (WIN95)...\n");
+    printf("\nInstalling SimCity 2000(Win95)...\n");
     if (!SC2KRegistry::SetLocalization()) goto label_start;
     if (!SC2KRegistry::SetPaths(root_path, exe_parent_path)) goto label_start;
     if (!SC2KRegistry::SetRegistration()) goto label_start;
+    if (!SC2KRegistry::SetOptions()) goto label_start;
+    if (!SC2KRegistry::SetSCURK()) goto label_start;
+    if (!SC2KRegistry::SetVersion()) goto label_start;
+    if (!SC2KRegistry::SetWindows()) goto label_start;
+    printf("Finished installing SimCity 2000(Win95)\n");
   }
 
 label_patcher:
   SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-  printf("\nFinished! SimCity 2000 (Win95) is now installed and patched.\n");
+  printf("\nSimCity 2000 (Win95) is now installed and patched.\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);
   _getch();
 }

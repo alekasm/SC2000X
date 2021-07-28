@@ -40,14 +40,14 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], si
       overwrite = true;
     }  
     
+    printf("%s %ls=%ls\n", overwrite ? "Overwriting" : "Setting",
+      entry.Name.c_str(), entry.Value->wstring.c_str());
+
     LSTATUS status_setvalue = RegSetValueExW(hKey,
         entry.Name.c_str(), NULL,
         entry.Value->dwType,
         entry.Value->Data,
-        entry.Value->Size - 1);
-
-    printf("%s %ls=%ls\n", overwrite ? "Overwriting" : "Setting",
-      entry.Name.c_str(), entry.Value->wstring.c_str());
+        entry.Value->Size);    
 
     if (status_setvalue != ERROR_SUCCESS)
     {

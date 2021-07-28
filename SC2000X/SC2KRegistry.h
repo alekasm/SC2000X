@@ -34,4 +34,8 @@ namespace SC2KRegistry
     const std::filesystem::path& root_path,
     const std::filesystem::path& exe_parent_path);
   extern bool SetRegistration();
+  extern bool SetOptions();
+  extern bool SetSCURK();
+  extern bool SetVersion();
+  extern bool SetWindows();
 }

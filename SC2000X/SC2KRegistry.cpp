@@ -58,7 +58,7 @@ bool SC2KRegistry::SetPaths(
   rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Paths";
 
   //Do not use stack-allocated values for RegistryValues, they will be pointer casted.
-  const RegistryEntry rvalues[]{
+  const RegistryEntry rvalues[] {
     RegistryEntry(L"Cities", RegistryValue(KeyDirectoryMap.at(L"Cities"))),
     RegistryEntry(L"Data", RegistryValue(KeyDirectoryMap.at(L"Data"))),
     RegistryEntry(L"Goodies", RegistryValue(KeyDirectoryMap.at(L"Goodies"))),
@@ -92,6 +92,70 @@ bool SC2KRegistry::SetRegistration()
   {
     RegistryEntry(L"Mayor Name", RegistryValue(mayor_name)),
     RegistryEntry(L"Company Name", RegistryValue(company_name))
+  };
+  return Registry::SetValues(rkey, rvalues, 2);
+}
+
+bool SC2KRegistry::SetOptions()
+{
+  RegistryKey rkey;
+  rkey.hKey = HKEY_CURRENT_USER;
+  rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Options";
+  const RegistryEntry rvalues[] {
+    RegistryEntry(L"AutoBudget", RegistryValue(DWORD(0x0))),
+    RegistryEntry(L"AutoGoto", RegistryValue(DWORD(0x1))),
+    RegistryEntry(L"AutoSave", RegistryValue(DWORD(0x0))),
+    RegistryEntry(L"Disasters", RegistryValue(DWORD(0x1))),
+    RegistryEntry(L"Music", RegistryValue(DWORD(0x1))),
+    RegistryEntry(L"Sound", RegistryValue(DWORD(0x1))),
+    RegistryEntry(L"Speed", RegistryValue(DWORD(0x1)))
+  };
+  return Registry::SetValues(rkey, rvalues, 7);
+}
+
+bool SC2KRegistry::SetSCURK()
+{
+  RegistryKey rkey;
+  rkey.hKey = HKEY_CURRENT_USER;
+  rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\SCURK";
+  const RegistryEntry rvalues[]{
+    RegistryEntry(L"CycleColors", RegistryValue(DWORD(0x1))),
+    RegistryEntry(L"GridHeight", RegistryValue(DWORD(0x2))),
+    RegistryEntry(L"GridWidth", RegistryValue(DWORD(0x2))),
+    RegistryEntry(L"ShowClipRegion", RegistryValue(DWORD(0x0))),
+    RegistryEntry(L"ShowDrawGrid", RegistryValue(DWORD(0x0))),
+    RegistryEntry(L"SnapToGrid", RegistryValue(DWORD(0x0))),
+    RegistryEntry(L"Sound", RegistryValue(DWORD(0x1)))
+  };
+  return Registry::SetValues(rkey, rvalues, 7);
+}
+
+bool SC2KRegistry::SetVersion()
+{
+  //This is likely completely useless because I know there are different
+  //versions based on filesize and md5sum
+  RegistryKey rkey;
+  rkey.hKey = HKEY_CURRENT_USER;
+  rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Version";
+
+  const RegistryEntry rvalues[]{
+    RegistryEntry(L"SCURK", RegistryValue(DWORD(0x100))),
+    RegistryEntry(L"SimCity 2000", RegistryValue(DWORD(0x100)))
+  };
+  return Registry::SetValues(rkey, rvalues, 2);
+}
+
+bool SC2KRegistry::SetWindows()
+{
+  //This is likely completely useless because I know there are different
+  //versions based on filesize and md5sum
+  RegistryKey rkey;
+  rkey.hKey = HKEY_CURRENT_USER;
+  rkey.SubKey = L"Software\\Maxis\\SimCity 2000\\Windows";
+
+  const RegistryEntry rvalues[]{
+    RegistryEntry(L"Color Check", RegistryValue(DWORD(0x0))),
+    RegistryEntry(L"SimCity 2000", RegistryValue(L"8 1"))
   };
   return Registry::SetValues(rkey, rvalues, 2);
 }
