@@ -153,8 +153,15 @@
     <ClInclude Include="Hash.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Registry.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="SC2KRegistry.h" />
     <ClInclude Include="SC2KVersion.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SC2000X.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="icon.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

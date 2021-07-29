@@ -1,3 +1,10 @@
+/*
+* Written by Aleksander Krimsky
+* www.krimsky.net | www.alekasm.com
+* Icon from iconarchive.org, accessed 29 July 2021
+* https://iconarchive.com/show/standard-city-icons-by-aha-soft/city-icon.html
+*/
+
 #include <iostream>
 #include <cstdio>
 #include <string>
@@ -14,7 +21,6 @@
 #include "SC2KRegistry.h"
 #include "SC2KVersion.h"
 
-
 int main()
 {
   //Shared between installer and patcher
@@ -27,12 +33,12 @@ int main()
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
   printf("Welcome to SC2000X - An Open-Source SimCity 2000(Win95) Patcher\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN);
-  printf("Current Version: 0.2\n");
+  printf("Current Version: 0.2 (DEV)\n");
   printf("Aleksander Krimsky - alekasm.com | krimsky.net\n\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
   printf("Current Features:\n");
-  printf("- Performs installation/setup\n");
-  printf("- Fixes Save-As crashing\n\n");  
+  printf("- Performs installation/setup\n\n");
+  //printf("- Fixes Save-As crashing\n\n");  
 
   HANDLE hToken = NULL;
   if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
@@ -56,8 +62,6 @@ int main()
     warning.append("3. Ensure the game is not located on read-only/removable storage ie usb/cd/iso/zip\n");
     Logger::PrintWarning(warning);
   }
-
-
 
 label_start:
   {
