@@ -20,6 +20,7 @@ BOOL Registry::SetValues(const RegistryKey key, const RegistryEntry values[], si
     const RegistryEntry& entry = values[index];
     const size_t v_size = entry.Value->Size;
 
+    //TODO Create a query for DWORD values
     DWORD queryType;
     WCHAR queryData[256] = { 0 };
     DWORD cbData = sizeof(queryData) - 1;

@@ -12,37 +12,27 @@
 #include "Registry.h"
 #include "Hash.h"
 #include "SC2KRegistry.h"
+#include "SC2KVersion.h"
 
-//Warnings = Red, Prompts = White, Debug = Gray
-
-std::filesystem::path GetFilesystemPath(const std::wstring& path)
-{
-  std::filesystem::path fs_path(path);
-  try
-  {
-    fs_path = std::filesystem::canonical(fs_path);
-  }
-  catch (const std::exception&)
-  {
-    printf("Unable to validate that the following path exists: %ls\n", fs_path.c_str());
-  }
-  return fs_path;
-}
 
 int main()
 {
+  //Shared between installer and patcher
+  std::filesystem::path exe_path;
+  std::filesystem::path exe_parent_path;
+  std::filesystem::path root_path;
+
   HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
   Logger::Initialize(hConsole);
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
   printf("Welcome to SC2000X - An Open-Source SimCity 2000(Win95) Patcher\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN);
-  printf("Current Version: 0.1\n");
+  printf("Current Version: 0.2\n");
   printf("Aleksander Krimsky - alekasm.com | krimsky.net\n\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
   printf("Current Features:\n");
   printf("- Performs installation/setup\n");
-  printf("- Fixes Save-As crashing\n\n"); 
- 
+  printf("- Fixes Save-As crashing\n\n");  
 
   HANDLE hToken = NULL;
   if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
@@ -67,21 +57,15 @@ int main()
     Logger::PrintWarning(warning);
   }
 
+
+
 label_start:
   {
-    std::wstring run_installer = Logger::Prompt(FOREGROUND_WHITE,
-      L"Would you like to install the game? (required to run) Y/n: ");
-    std::transform(run_installer.begin(), run_installer.end(), run_installer.begin(), ::tolower);
-    if (!run_installer.empty() && run_installer.at(0) == L'n') goto label_patcher;
-  }
-
-label_install:
-  {
+    exe_path.clear();
+    exe_parent_path.clear();
+    root_path.clear();
     std::wstring input = Logger::Prompt(FOREGROUND_WHITE, L"Enter your SIMCITY.EXE file location: ");
-    std::filesystem::path exe_path(input);
-    std::filesystem::path exe_parent_path;
-    std::filesystem::path root_path;
-
+    exe_path = std::filesystem::path(input);
     if (!exe_path.has_extension())
       exe_path.append(L"SimCity.exe");
     try
@@ -93,20 +77,23 @@ label_install:
     catch (const std::exception& e)
     {
       printf("%s\n", e.what());
-      goto label_install;
+      goto label_start;
     }
-
     printf("Canonical Path=%ls\n", exe_path.wstring().c_str());
     printf("Parent Path=%ls\n", exe_parent_path.wstring().c_str());
     printf("Root Path=%ls\n", root_path.wstring().c_str());
+  }
 
-    std::string hash;
-    bool hash_result = Hash::GenerateMD5(exe_path.wstring(), hash);
-    if (hash_result)
-      printf("md5sum=%s\n", hash.c_str());
-    else
-      goto label_start;
+label_install_prompt:
+  {
+    std::wstring run_installer = Logger::Prompt(FOREGROUND_WHITE,
+      L"Would you like to install the game? (required to run) Y/n: ");
+    std::transform(run_installer.begin(), run_installer.end(), run_installer.begin(), ::tolower);
+    if (!run_installer.empty() && run_installer.at(0) == L'n') goto label_patcher_prompt;
+  }
 
+label_install:
+  {
     printf("\nInstalling SimCity 2000(Win95)...\n");
     if (!SC2KRegistry::SetLocalization()) goto label_start;
     if (!SC2KRegistry::SetPaths(root_path, exe_parent_path)) goto label_start;
@@ -118,9 +105,55 @@ label_install:
     printf("Finished installing SimCity 2000(Win95)\n");
   }
 
+label_patcher_prompt:
+  {
+    std::wstring run_patcher = Logger::Prompt(FOREGROUND_WHITE,
+      L"Would you like to patch the game? Y/n: ");
+    std::transform(run_patcher.begin(), run_patcher.end(), run_patcher.begin(), ::tolower);
+    if (!run_patcher.empty() && run_patcher.at(0) == L'n') goto label_finished;
+  }
+
 label_patcher:
+  {
+    std::string hash;
+    bool hash_result = Hash::GenerateMD5(exe_path.wstring(), hash);
+    if (!hash_result) goto label_start;
+    printf("Hash=%s\n", hash.c_str());
+    auto vinfo_it = SC2KVersion::VersionInfoMap.find(hash);
+    if (vinfo_it == SC2KVersion::VersionInfoMap.end())
+    {
+      std::string warning = "SC2000X was unable to recognize the game with the hash above!\n";
+      warning.append("Either the game is already modified or it does not exist in the ");
+      warning.append("SC2000X list of recognized versions. Please submit a copy of your SIMCITY.exe for ");
+      warning.append("evaluation.\n");
+      Logger::PrintWarning(warning);
+      goto label_start;
+    }
+    VersionInfo vinfo = vinfo_it->second;
+    printf("Recognized Version: %s\n", vinfo.description.c_str());
+    std::filesystem::path sc2000x_path(exe_parent_path);
+    sc2000x_path.append("SC2000X.EXE");
+    std::error_code copy_error;
+    std::filesystem::copy(exe_path, sc2000x_path,
+      std::filesystem::copy_options::overwrite_existing, copy_error);
+    if (copy_error.value())
+    {
+      char buffer[512];
+      snprintf(buffer, sizeof(buffer),
+        "Failed to copy file from: %ls\nto: %ls\nError Code: %d\n%s\n",
+        exe_path.wstring().c_str(),
+        sc2000x_path.wstring().c_str(),
+        copy_error.value(), 
+        copy_error.message().c_str());
+      Logger::PrintWarning(buffer);
+      goto label_start;
+    }
+
+  }
+
+label_finished:
   SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-  printf("\nSimCity 2000 (Win95) is now installed and patched.\n");
+  printf("\nSimCity 2000(Win95) is now installed and patched.\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);
   _getch();
 }

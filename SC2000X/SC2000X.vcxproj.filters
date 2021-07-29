@@ -44,5 +44,8 @@
     <ClInclude Include="Logger.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="SC2KVersion.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
