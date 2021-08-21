@@ -36,12 +36,12 @@ int main()
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
   printf("Welcome to SC2000X - An Open-Source SimCity 2000(Win95) Patcher\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN);
-  printf("Current Version: 0.9 (DEV)\n");
+  printf("Current Version: 1.0\n");
   printf("Aleksander Krimsky - alekasm.com | krimsky.net\n\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
   printf("Current Features:\n");
-  printf("- Performs installation/setup\n\n");
-  //printf("- Fixes Save-As crashing\n\n");  
+  printf("- Performs installation/setup\n");
+  printf("- Fixes Dialog Crash Bug\n\n");
 
   HANDLE hToken = NULL;
   if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
