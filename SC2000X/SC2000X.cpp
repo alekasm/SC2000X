@@ -22,6 +22,7 @@
 #include "SC2KVersion.h"
 #include "Patcher.h"
 #include "AssemblyData.h"
+#include "FileVersion.h"
 
 int main()
 {
@@ -121,6 +122,7 @@ label_patcher_prompt:
 
 label_patcher:
   {
+    FileVersion::PrintFileVersionInfo(exe_path.string().c_str());
     std::string hash;
     bool hash_result = Hash::GenerateMD5(exe_path.wstring(), hash);
     if (!hash_result) goto label_start;

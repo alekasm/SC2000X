@@ -65,6 +65,9 @@
     <ClInclude Include="Patcher.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="FileVersion.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="SC2000X.rc">
