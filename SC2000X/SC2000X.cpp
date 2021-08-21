@@ -20,6 +20,8 @@
 #include "Hash.h"
 #include "SC2KRegistry.h"
 #include "SC2KVersion.h"
+#include "Patcher.h"
+#include "AssemblyData.h"
 
 int main()
 {
@@ -33,7 +35,7 @@ int main()
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
   printf("Welcome to SC2000X - An Open-Source SimCity 2000(Win95) Patcher\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_GREEN);
-  printf("Current Version: 0.2 (DEV)\n");
+  printf("Current Version: 0.9 (DEV)\n");
   printf("Aleksander Krimsky - alekasm.com | krimsky.net\n\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_GRAY);
   printf("Current Features:\n");
@@ -152,12 +154,16 @@ label_patcher:
       Logger::PrintWarning(buffer);
       goto label_start;
     }
-
+    std::vector<Instructions> instructions;
+    AssemblyData::GenerateData(vinfo, instructions);
+    //Okay, I got lazy and used std string here, I really don't care right now
+    bool patch_result = Patcher::Patch(sc2000x_path.string(), instructions);
+    if (!patch_result) goto label_patcher_prompt;
   }
 
 label_finished:
   SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-  printf("\nSimCity 2000(Win95) is now installed and patched.\n");
+  printf("\nSC2000X is now finished!\n");
   SetConsoleTextAttribute(hConsole, FOREGROUND_WHITE);
   _getch();
 }
